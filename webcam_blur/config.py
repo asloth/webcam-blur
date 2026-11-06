@@ -14,6 +14,7 @@ DEFAULTS = {
     "strength": "medium",
     "use_gpu": False,   # Low quality is as light on the CPU, without the GPU stack's memory
     "quality": "low",
+    "background": None,  # image shown behind the person instead of the blur; None = blur
     "language": None,   # None = follow the system locale
     "cameras": {},      # per-camera settings, keyed by Camera.key
 }
@@ -54,6 +55,8 @@ class Config:
             self.data["strength"] = DEFAULTS["strength"]
         if self.data["quality"] not in QUALITIES:
             self.data["quality"] = DEFAULTS["quality"]
+        if not isinstance(self.data["background"], str) or not self.data["background"]:
+            self.data["background"] = None
 
     def __getitem__(self, key):
         return self.data[key]

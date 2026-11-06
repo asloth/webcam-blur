@@ -102,7 +102,7 @@ class CameraWorker(threading.Thread):
         else:
             reason = "no_ncnn" if support.state == "no_ncnn" else "no_gpu"
         return {"blur": self.settings["blur"], "sigma": STRENGTHS[self.config["strength"]],
-                "gpu": use_gpu,
+                "background": self.config["background"], "gpu": use_gpu,
                 "quality": self.config["quality"], "cpu_reason": reason}
 
     def stream(self, out, mode):

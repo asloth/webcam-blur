@@ -12,7 +12,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import QPointF, QRectF, Qt, QTimer
 from PyQt6.QtGui import QAction, QActionGroup, QColor, QIcon, QPainter, QPen, QPixmap
-from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon
 
 from . import gpucheck, i18n, models
 from .config import QUALITIES, STRENGTHS, Config
@@ -111,6 +111,22 @@ class Tray:
             group.addAction(act)
             sub.addAction(act)
 
+        sub = m.addMenu(tr("menu.background"))
+        group = QActionGroup(sub)
+        background = self.config["background"]
+        act = QAction(tr("background.blur"), sub, checkable=True)
+        act.setChecked(background is None)
+        act.triggered.connect(lambda: self.set_background(None))
+        group.addAction(act)
+        sub.addAction(act)
+        if background is not None:
+            act = QAction(tr("background.image", name=Path(background).name), sub, checkable=True)
+            act.setChecked(True)
+            group.addAction(act)
+            sub.addAction(act)
+        sub.addSeparator()
+        sub.addAction(tr("background.choose"), self.choose_background)
+
         # GPU options are only offered where the startup check ran a model on the GPU.
         gpu_ok = gpucheck.gpu_support.state == "ok"
         sub = m.addMenu(tr("menu.quality"))
@@ -138,6 +154,18 @@ class Tray:
         self.resources.setEnabled(False)
         self.update_resources(sample=False)
         m.addAction(tr("menu.quit"), self.app.quit)
+
+    def set_background(self, path):
+        self.config["background"] = path
+        self.build_menu()
+
+    def choose_background(self):
+        current = self.config["background"]
+        start = str(Path(current).parent) if current else str(Path.home() / "Pictures")
+        path, _ = QFileDialog.getOpenFileName(None, tr("background.dialog_title"), start,
+                                              tr("background.dialog_filter") + " (*.png *.jpg *.jpeg *.webp *.bmp)")
+        if path:
+            self.set_background(path)
 
     def set_camera(self, key, setting, value):
         self.config.camera(key)[setting] = value

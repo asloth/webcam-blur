@@ -74,3 +74,13 @@ def test_cameras_do_not_share_their_image_settings(tmp_path):
 def test_configs_do_not_share_state(tmp_path):
     Config(tmp_path / "a.json").camera("cam")["blur"] = False
     assert Config(tmp_path / "b.json").camera("cam")["blur"] is True
+
+
+def test_background_defaults_to_blur_and_resets_bad_values(tmp_path):
+    path = tmp_path / "config.json"
+    assert Config(path)["background"] is None
+    for bad in (42, "", ["x"]):
+        path.write_text(json.dumps({"background": bad}))
+        assert Config(path)["background"] is None
+    path.write_text(json.dumps({"background": "/tmp/bg.jpg"}))
+    assert Config(path)["background"] == "/tmp/bg.jpg"

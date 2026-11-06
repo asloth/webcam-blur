@@ -7,7 +7,8 @@ opened and configured and hands over (the format cannot change under a reading a
 
 Protocol, as JSON lines:
 - stdin, first line: {"camera": path, "fd": n, "mode": {width, height, fps, fourcc}, "settings": {…}}
-- stdin, then: updated settings {"blur", "sigma", "quality", "gpu" (bool), "cpu_reason"},
+- stdin, then: updated settings {"blur", "sigma", "background" (image path or None),
+  "quality", "gpu" (bool), "cpu_reason"},
   or {"stop": true}
 - stdout: {"engine": …} whenever it changes, {"error": <translation key>} before failing
 """
@@ -38,6 +39,27 @@ def blur_background(frame, alpha, sigma):
     den = cv2.GaussianBlur(bg_w, (0, 0), sigma)[..., None] + 1e-4
     bg = cv2.resize(np.clip(num / den, 0, 255).astype(np.uint8), (w, h), interpolation=cv2.INTER_LINEAR)
     return cv2.blendLinear(frame, bg, alpha, 1.0 - alpha)
+
+
+def fit_cover(image, w, h):
+    """Scale and centre-crop ``image`` to fill w x h without stretching it."""
+    ih, iw = image.shape[:2]
+    scale = max(w / iw, h / ih)
+    sw, sh = max(w, round(iw * scale)), max(h, round(ih * scale))
+    interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
+    scaled = cv2.resize(image, (sw, sh), interpolation=interp)
+    x, y = (sw - w) // 2, (sh - h) // 2
+    return np.ascontiguousarray(scaled[y:y + h, x:x + w])
+
+
+def load_background(path, w, h):
+    """The background image at ``path`` fitted to w x h, or None if it cannot be read."""
+    image = cv2.imread(path, cv2.IMREAD_COLOR) if path else None
+    return None if image is None else fit_cover(image, w, h)
+
+
+def replace_background(frame, alpha, background):
+    return cv2.blendLinear(frame, background, alpha, 1.0 - alpha)
 
 
 MAX_INTERVAL = 6
@@ -84,6 +106,7 @@ def run(camera, out, mode, settings, stop):
         engine = None
         next_check = 0.0
         a, frame_no, interval = None, 0, 1
+        background, background_path = None, None  # image loaded for settings["background"]
         frames, counted_since, fps, busy = 0, time.monotonic(), mode.fps, 0.0
         model_time = rest_time = 0.0  # moving averages, seconds per frame
         while not stop.is_set():
@@ -144,7 +167,13 @@ def run(camera, out, mode, settings, stop):
                     matted = time.monotonic() - matting_started
                     model_time = 0.8 * model_time + 0.2 * matted
                 frame_no += 1
-                frame = blur_background(frame, a, settings["sigma"])
+                wanted = settings.get("background")
+                if wanted != background_path:
+                    background_path, background = wanted, load_background(wanted, w, h)
+                if background is not None:
+                    frame = replace_background(frame, a, background)
+                else:  # blur, also when the image cannot be read
+                    frame = blur_background(frame, a, settings["sigma"])
             out.write(frame)
             spent = time.monotonic() - started
             busy += spent
