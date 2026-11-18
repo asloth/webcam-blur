@@ -132,7 +132,7 @@ class Tray:
             sub.addAction(act)
         sub.addSeparator()
         sub.addAction(tr("background.choose"), self.choose_background)
-        if self.config["recent_backgrounds"]:
+        if any(p in shown for p in self.config["recent_backgrounds"]):  # only when a recent image is listed
             sub.addAction(tr("background.clear_recent"), self.clear_recent_backgrounds)
 
         # GPU options are only offered where the startup check ran a model on the GPU.

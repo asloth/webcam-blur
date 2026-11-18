@@ -42,20 +42,69 @@ def blur_background(frame, alpha, sigma):
 
 
 def fit_cover(image, w, h):
-    """Scale and centre-crop ``image`` to fill w x h without stretching it."""
+    """Scale and centre-crop ``image`` to fill w x h without stretching it.
+
+    The crop is taken in the image's own pixels first, so only the part that is shown gets
+    resized: a long, narrow image never turns into a huge intermediate.
+    """
     ih, iw = image.shape[:2]
     scale = max(w / iw, h / ih)
-    sw, sh = max(w, round(iw * scale)), max(h, round(ih * scale))
+    cw, ch = min(iw, max(1, round(w / scale))), min(ih, max(1, round(h / scale)))
+    x, y = (iw - cw) // 2, (ih - ch) // 2
     interp = cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR
-    scaled = cv2.resize(image, (sw, sh), interpolation=interp)
-    x, y = (sw - w) // 2, (sh - h) // 2
-    return np.ascontiguousarray(scaled[y:y + h, x:x + w])
+    return np.ascontiguousarray(cv2.resize(image[y:y + ch, x:x + cw], (w, h), interpolation=interp))
 
 
 def load_background(path, w, h):
     """The background image at ``path`` fitted to w x h, or None if it cannot be read."""
-    image = cv2.imread(path, cv2.IMREAD_COLOR) if path else None
-    return None if image is None else fit_cover(image, w, h)
+    try:
+        image = cv2.imread(path, cv2.IMREAD_COLOR) if path else None
+        return None if image is None else fit_cover(image, w, h)
+    except (cv2.error, MemoryError):
+        return None
+
+
+class BackgroundLoader:
+    """Loads the background image away from the frame loop.
+
+    ``get(path)`` returns the image to show now: the previous one while a new image loads,
+    None (blur) when there is none or it cannot be read. A failed load is tried again every
+    RETRY seconds, so a file that appears later (a share mounted after the stream started,
+    the same file fixed and picked again) is picked up.
+    """
+
+    RETRY = 2.0
+
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.wanted = None
+        self.shown, self.shown_path = None, None
+        self.loading = None  # the thread loading an image, if any
+        self.next_try = 0.0
+        self.lock = threading.Lock()
+
+    def get(self, path, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            if path != self.wanted:
+                self.wanted, self.next_try = path, 0.0
+            if path is None:
+                self.shown, self.shown_path = None, None
+                return None
+            if self.shown_path == path and self.shown is not None:
+                return self.shown
+            if self.loading is None and now >= self.next_try:
+                self.next_try = now + self.RETRY
+                self.loading = threading.Thread(target=self._load, args=(path,), daemon=True)
+                self.loading.start()
+            return self.shown
+
+    def _load(self, path):
+        image = load_background(path, self.w, self.h)
+        with self.lock:
+            self.loading = None
+            if path == self.wanted:  # not switched to something else meanwhile
+                self.shown, self.shown_path = image, path
 
 
 def replace_background(frame, alpha, background):
@@ -106,7 +155,7 @@ def run(camera, out, mode, settings, stop):
         engine = None
         next_check = 0.0
         a, frame_no, interval = None, 0, 1
-        background, background_path = None, None  # image loaded for settings["background"]
+        backgrounds = BackgroundLoader(w, h)
         frames, counted_since, fps, busy = 0, time.monotonic(), mode.fps, 0.0
         model_time = rest_time = 0.0  # moving averages, seconds per frame
         while not stop.is_set():
@@ -167,12 +216,10 @@ def run(camera, out, mode, settings, stop):
                     matted = time.monotonic() - matting_started
                     model_time = 0.8 * model_time + 0.2 * matted
                 frame_no += 1
-                wanted = settings.get("background")
-                if wanted != background_path:
-                    background_path, background = wanted, load_background(wanted, w, h)
+                background = backgrounds.get(settings.get("background"))
                 if background is not None:
                     frame = replace_background(frame, a, background)
-                else:  # blur, also when the image cannot be read
+                else:  # blur, also while the image loads the first time or cannot be read
                     frame = blur_background(frame, a, settings["sigma"])
             out.write(frame)
             spent = time.monotonic() - started
