@@ -14,6 +14,8 @@
   "background.blur": "Flou",
   "background.image": "Image : {name}",
   "background.choose": "Choisir une image…",
+  "background.clear_recent": "Vider les récents",
+  "background.missing": "Image introuvable : {name}",
   "background.dialog_title": "Image d’arrière-plan",
   "background.dialog_filter": "Images",
   "menu.autostart": "Lancer à l'ouverture de session",

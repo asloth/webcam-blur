@@ -10,11 +10,14 @@ PATH = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "webca
 STRENGTHS = {"light": 3.0, "medium": 6.0, "strong": 12.0}  # blur sigma, in quarter-resolution pixels
 QUALITIES = ("low", "standard", "high")  # see models.QUALITY_MODELS and matting.CPU_WIDTH
 
+MAX_RECENT = 5
+
 DEFAULTS = {
     "strength": "medium",
     "use_gpu": False,   # Low quality is as light on the CPU, without the GPU stack's memory
     "quality": "low",
     "background": None,  # image shown behind the person instead of the blur; None = blur
+    "recent_backgrounds": [],  # last background images used, most recent first, at most MAX_RECENT
     "language": None,   # None = follow the system locale
     "cameras": {},      # per-camera settings, keyed by Camera.key
 }
@@ -23,6 +26,22 @@ DEFAULTS = {
 # ({"width", "height", "fps"} chosen in the settings, or None for automatic) and "controls"
 # (image controls changed in the settings, {control key: value}, set again on plug-in).
 CAMERA_DEFAULTS = {"blur": True, "virtual": True, "mode": None, "controls": {}}
+
+
+def clean_recent(value):
+    """Recent background list from the file: non-empty strings only, no duplicates, at most MAX_RECENT."""
+    if not isinstance(value, list):
+        return []
+    out = []
+    for item in value:
+        if isinstance(item, str) and item and item not in out:
+            out.append(item)
+    return out[:MAX_RECENT]
+
+
+def add_recent(recent, path):
+    """New recent list with `path` moved to the front (the input list is not modified)."""
+    return clean_recent([path, *recent])
 
 
 def _migrate(data):
@@ -57,6 +76,7 @@ class Config:
             self.data["quality"] = DEFAULTS["quality"]
         if not isinstance(self.data["background"], str) or not self.data["background"]:
             self.data["background"] = None
+        self.data["recent_backgrounds"] = clean_recent(self.data["recent_backgrounds"])
 
     def __getitem__(self, key):
         return self.data[key]

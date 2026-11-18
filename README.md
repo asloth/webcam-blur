@@ -30,7 +30,7 @@ Meet, Discord, OBS, Firefox, Chrome… Turn it on and off with one click in the 
   resolutions and frame rates.
 - **Private.** Everything happens on your computer. No account, no cloud, nothing sent
   anywhere.
-- **In your language.** English and French so far. [Adding a language](CONTRIBUTING.md)
+- **In your language.** English, French and Spanish so far. [Adding a language](CONTRIBUTING.md)
   only takes a text file.
 
 ## The tray icon
@@ -48,6 +48,9 @@ menu.
 
 - **Webcam settings…** opens the settings window (below).
 - **Blur strength:** light, medium or strong (see the pictures above).
+- **Background:** *Blur*, the picture you chose, or *Choose image…* (see
+  [Background image](#background-image)). Recently used images are listed so you can
+  switch between them.
 - **Quality:** how finely the AI model looks at you. *Low*, the default, is the
   lightest, and its edges differ very little from *Standard*. *High* gives slightly
   finer edges around hair; it is much heavier, best with a graphics card. All the
@@ -56,6 +59,20 @@ menu.
   startup. It saves the most processor time with *Standard* and *High*, or at 60 fps.
 - **Start at login.**
 - A greyed-out line shows the processor, memory and graphics memory the app uses right now.
+
+## Background image
+
+Instead of blurring the background, you can show a picture behind you. In the tray
+menu, open *Background* and pick *Blur*, the current image, or *Choose image…* to select
+a file.
+
+- Any image size works. The image is scaled and centre-cropped to fill the frame, so it
+  keeps its proportions and is never stretched.
+- If the image can't be read (deleted, moved or not a valid image), the background falls
+  back to the blur.
+- The choice applies to all webcams.
+- *Background* also lists your recent images, so you can switch between them without
+  opening the file picker again.
 
 ## The settings window
 

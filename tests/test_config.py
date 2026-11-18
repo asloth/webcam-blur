@@ -84,3 +84,21 @@ def test_background_defaults_to_blur_and_resets_bad_values(tmp_path):
         assert Config(path)["background"] is None
     path.write_text(json.dumps({"background": "/tmp/bg.jpg"}))
     assert Config(path)["background"] == "/tmp/bg.jpg"
+
+
+def test_recent_backgrounds_validated(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"recent_backgrounds": ["a", "", 3, "a", "b", "c", "d", "e", "f"]}))
+    assert Config(path)["recent_backgrounds"] == ["a", "b", "c", "d", "e"]
+    path.write_text(json.dumps({"recent_backgrounds": "a.png"}))
+    assert Config(path)["recent_backgrounds"] == []
+    assert Config(tmp_path / "none.json")["recent_backgrounds"] == []
+
+
+def test_add_recent_moves_to_front_and_caps():
+    from webcam_blur.config import add_recent
+    assert add_recent(["a", "b", "c"], "c") == ["c", "a", "b"]
+    assert add_recent(["a", "b", "c", "d", "e"], "z") == ["z", "a", "b", "c", "d"]
+    original = ["a"]
+    add_recent(original, "b")
+    assert original == ["a"]

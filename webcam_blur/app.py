@@ -15,7 +15,7 @@ from PyQt6.QtGui import QAction, QActionGroup, QColor, QIcon, QPainter, QPen, QP
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon
 
 from . import gpucheck, i18n, models
-from .config import QUALITIES, STRENGTHS, Config
+from .config import QUALITIES, STRENGTHS, Config, add_recent
 from .i18n import number, tr
 from .manager import Manager
 from .resources import ResourceMeter
@@ -119,13 +119,21 @@ class Tray:
         act.triggered.connect(lambda: self.set_background(None))
         group.addAction(act)
         sub.addAction(act)
-        if background is not None:
-            act = QAction(tr("background.image", name=Path(background).name), sub, checkable=True)
-            act.setChecked(True)
+        shown = [p for p in self.config["recent_backgrounds"] if Path(p).exists()]
+        if background is not None and background not in shown:
+            shown.insert(0, background)  # still listed (checked) when its file is gone, so the blur is explained
+        for path in shown:
+            name = Path(path).name
+            label = tr("background.image", name=name) if Path(path).exists() else tr("background.missing", name=name)
+            act = QAction(label, sub, checkable=True)
+            act.setChecked(path == background)
+            act.triggered.connect(lambda _=False, p=path: self.set_background(p))
             group.addAction(act)
             sub.addAction(act)
         sub.addSeparator()
         sub.addAction(tr("background.choose"), self.choose_background)
+        if self.config["recent_backgrounds"]:
+            sub.addAction(tr("background.clear_recent"), self.clear_recent_backgrounds)
 
         # GPU options are only offered where the startup check ran a model on the GPU.
         gpu_ok = gpucheck.gpu_support.state == "ok"
@@ -156,7 +164,13 @@ class Tray:
         m.addAction(tr("menu.quit"), self.app.quit)
 
     def set_background(self, path):
-        self.config["background"] = path
+        if path is not None:
+            self.config["recent_backgrounds"] = add_recent(self.config["recent_backgrounds"], path)
+        self.config["background"] = path  # Config.__setitem__ saves the file
+        self.build_menu()
+
+    def clear_recent_backgrounds(self):
+        self.config["recent_backgrounds"] = []  # the current background stays
         self.build_menu()
 
     def choose_background(self):

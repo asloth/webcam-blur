@@ -14,6 +14,8 @@
   "background.blur": "Blur",
   "background.image": "Image: {name}",
   "background.choose": "Choose image…",
+  "background.clear_recent": "Clear recent",
+  "background.missing": "Image not found: {name}",
   "background.dialog_title": "Background image",
   "background.dialog_filter": "Images",
   "menu.autostart": "Start at login",
