@@ -1,8 +1,9 @@
 name: release
 
-# Push a tag like v0.1.2 (matching webcam_blur.__version__) to publish that version:
-# the package is built and checked from the release tarball exactly as AUR users will
-# build it, then pushed to the AUR, and a GitHub release is created.
+# Push a tag like v0.4.0 (matching webcam_blur.__version__) to publish that version:
+# the Arch package is built and checked from the release tarball, and a GitHub release
+# is created with the package, its PKGBUILD and the notes in packaging/release-notes/.
+# This fork does not publish to the AUR: the AUR's webcam-blur is the upstream package.
 
 on:
   push:
@@ -54,38 +55,16 @@ jobs:
           sudo -u builder makepkg --printsrcinfo > .SRCINFO
           cat .SRCINFO
 
-      - name: Publish to the AUR
-        env:
-          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-        run: |
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
-          chmod 600 ~/.ssh/aur
-          # Pinned host key; fingerprint SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4,
-          # as published on https://aur.archlinux.org
-          echo "aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN" > ~/.ssh/known_hosts
-          # ssh takes its home from /etc/passwd (/root), not $HOME (/github/home in a
-          # container job), so both files are passed explicitly.
-          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
-          git clone ssh://aur@aur.archlinux.org/webcam-blur.git aur
-          cp packaging/arch/PKGBUILD packaging/arch/webcam-blur.install packaging/arch/.SRCINFO aur/
-          cd aur
-          git config user.name "JiPaix"
-          git config user.email "26584973+JiPaix@users.noreply.github.com"
-          git add PKGBUILD webcam-blur.install .SRCINFO
-          if git diff --cached --quiet; then
-            echo "The AUR already has this version."
-          else
-            git commit -m "Update to $VERSION"
-            git push origin HEAD:master
-          fi
-
       - name: GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          notes=packaging/release-notes/v$VERSION.md
+          if [ -f "$notes" ]; then set -- --notes-file "$notes"; else set -- --generate-notes; fi
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
-            || gh release create "$GITHUB_REF_NAME" --title "Webcam Blur $VERSION" --generate-notes
+            || gh release create "$GITHUB_REF_NAME" --title "Webcam Blur $VERSION" "$@"
+          gh release upload "$GITHUB_REF_NAME" --clobber \
+            packaging/arch/*.pkg.tar.zst packaging/arch/PKGBUILD packaging/arch/webcam-blur.install
 
       - name: Keep the repository's PKGBUILD in sync
         run: |

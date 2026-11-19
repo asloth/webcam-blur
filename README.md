@@ -1,15 +1,30 @@
 # Webcam Blur
 
-[![tests](https://github.com/JiPaix/webcam-blur/actions/workflows/tests.yml/badge.svg)](https://github.com/JiPaix/webcam-blur/actions/workflows/tests.yml)
+[![tests](https://github.com/asloth/webcam-blur/actions/workflows/tests.yml/badge.svg)](https://github.com/asloth/webcam-blur/actions/workflows/tests.yml)
 
-**Blur the background of your webcam on Linux, in every app:** Zoom, Teams, Google
-Meet, Discord, OBS, Firefox, Chrome… Turn it on and off with one click in the tray.
+**Blur your webcam background, or put a picture behind you, on Linux in every app:**
+Zoom, Teams, Google Meet, Discord, Slack, OBS, Firefox, Chrome… Turn it on and off with
+one click in the tray.
+
+Discord, Slack and many browser apps on Linux have no virtual background. Webcam Blur
+adds a virtual camera named "your webcam (blur)", so every app that lists cameras gets
+the blur and the background image.
+
+This is a fork of [JiPaix/webcam-blur](https://github.com/JiPaix/webcam-blur), written by
+JiPaix, maintained by [asloth](https://github.com/asloth). Version 0.4.0 adds the
+background image.
+
+| Earthrise | Cupola |
+| :---: | :---: |
+| ![Virtual background: Apollo 8 Earthrise](docs/images/background-earthrise.jpg) | ![Virtual background: ISS cupola](docs/images/background-cupola.jpg) |
+
+The same portrait with two different backgrounds. Or keep the blur:
 
 | No blur | Light | Medium | Strong |
 | :---: | :---: | :---: | :---: |
 | ![No blur](docs/images/strength-off.jpg) | ![Light blur](docs/images/strength-light.jpg) | ![Medium blur](docs/images/strength-medium.jpg) | ![Strong blur](docs/images/strength-strong.jpg) |
 
-<sub>Photo: NASA portrait of astronaut Sally Ride (public domain).</sub>
+<sub>Photos: NASA portrait of astronaut Sally Ride, with NASA's Apollo 8 "Earthrise" photo (AS08-14-2383) and an ISS cupola photo (iss038e013587) as backgrounds. All public domain.</sub>
 
 ## Why Webcam Blur?
 
@@ -18,6 +33,8 @@ Meet, Discord, OBS, Firefox, Chrome… Turn it on and off with one click in the 
   support background blur.
 - **Plug and play.** New webcams are picked up as soon as you plug them in. Nothing to
   configure.
+- **Virtual background.** Show a picture behind you instead of the blur. Switch between
+  your last 5 images from the tray, live during a call.
 - **One click.** Left-click the tray icon to switch the blur on or off for all your
   webcams. Right-click for the settings.
 - **Your webcam's settings, kept.** Brightness, exposure, white balance, focus and zoom
@@ -48,9 +65,8 @@ menu.
 
 - **Webcam settings…** opens the settings window (below).
 - **Blur strength:** light, medium or strong (see the pictures above).
-- **Background:** *Blur*, the picture you chose, or *Choose image…* (see
-  [Background image](#background-image)). Recently used images are listed so you can
-  switch between them.
+- **Background:** *Blur*, one of your last 5 images, *Choose image…* or *Clear recent*
+  (see [Background image](#background-image)).
 - **Quality:** how finely the AI model looks at you. *Low*, the default, is the
   lightest, and its edges differ very little from *Standard*. *High* gives slightly
   finer edges around hair; it is much heavier, best with a graphics card. All the
@@ -63,16 +79,22 @@ menu.
 ## Background image
 
 Instead of blurring the background, you can show a picture behind you. In the tray
-menu, open *Background* and pick *Blur*, the current image, or *Choose image…* to select
-a file.
+menu, open *Background*:
+
+- **Blur** goes back to the blur.
+- **The last 5 images you used** are listed by file name. One click switches to one.
+- **Choose image…** opens a file picker.
+- **Clear recent** empties the list.
+
+Details:
 
 - Any image size works. The image is scaled and centre-cropped to fill the frame, so it
   keeps its proportions and is never stretched.
+- Switching images is live: during a call, with no restart and no dropped frames. The
+  image loads in the background.
 - If the image can't be read (deleted, moved or not a valid image), the background falls
-  back to the blur.
+  back to the blur and is retried every 2 seconds.
 - The choice applies to all webcams.
-- *Background* also lists your recent images, so you can switch between them without
-  opening the file picker again.
 
 ## The settings window
 
@@ -98,7 +120,9 @@ sets them again whenever the webcam is plugged in or the app starts.
 
 ## Getting started
 
-1. **Install it.** On Arch: `yay -S webcam-blur`. Other systems: see
+1. **Install it.** On Arch: download the package from the
+   [latest release](https://github.com/asloth/webcam-blur/releases/latest) and run
+   `sudo pacman -U` on it (see [Installation](#installation)). Other systems: see
    [Installation](#installation) below.
 2. **Start "Webcam Blur"** from your applications menu. A webcam icon appears in the
    tray. Tick *Start at login* to have it every time.
@@ -106,9 +130,14 @@ sets them again whenever the webcam is plugged in or the app starts.
    webcam. That's it.
 
 The icon's lens turns blue when the blur is on, and a red dot appears while an app is
-using a camera.
+using a camera. To use a picture instead of the blur, open the tray menu, then
+*Background*, then *Choose image…*.
 
 ## Questions
+
+**Does it give Discord or Slack a virtual background?**
+Yes. Choose the "(blur)" camera in the app, then pick an image in the tray menu under
+*Background*. The app only sees a camera, so it doesn't need its own virtual background.
 
 **Which apps does it work with?**
 Any app that uses a webcam: Zoom, Teams, Meet and other browser-based calls, Discord,
@@ -159,22 +188,26 @@ on your face rather than behind you, help a lot. *High* quality helps a bit, and
 
 ### Arch Linux and derivatives
 
-Webcam Blur is in the [AUR](https://aur.archlinux.org/packages/webcam-blur):
+Version 0.4.0, with backgrounds, is on the
+[GitHub release page](https://github.com/asloth/webcam-blur/releases/latest). Download
+`webcam-blur-0.4.0-1-any.pkg.tar.zst` and install it:
 
 ```sh
-yay -S webcam-blur      # or paru -S webcam-blur, or any AUR helper
+sudo pacman -U ./webcam-blur-0.4.0-1-any.pkg.tar.zst
 ```
 
-Without an AUR helper:
+pacman installs `python-opencv`, `python-pyqt6`, `python-pyudev` and `python-numpy` from
+the official repositories. For `python-onnxruntime`, pick `python-onnxruntime-cpu` when
+asked: the GPU doesn't go through onnxruntime.
 
-```sh
-git clone https://aur.archlinux.org/webcam-blur.git
-cd webcam-blur
-makepkg -si
-```
+To build it yourself, download `PKGBUILD` and `webcam-blur.install` from the same
+release, then run `makepkg -si` in that folder.
 
-For GPU acceleration (optional), also install `ncnn`. If pacman asks which onnxruntime
-build to install, pick `python-onnxruntime-cpu`: the GPU doesn't go through onnxruntime.
+The package replaces the AUR `webcam-blur` if you have it installed. The AUR package is
+the upstream version without backgrounds. Your settings are kept: both use
+`~/.config/webcam-blur/config.json`.
+
+For GPU acceleration (optional), also install `ncnn`: `sudo pacman -S ncnn`.
 
 The `v4l2loopback` kernel module (**version 0.13 or newer**) ships with some kernels,
 such as CachyOS. For other kernels, install `v4l2loopback-dkms`.
@@ -186,7 +219,14 @@ v4l2loopback module (≥ 0.13). For the GPU: the ncnn library (`libncnn.so.1`, b
 Vulkan) and a Vulkan driver. Ubuntu 24.04 only packages v4l2loopback 0.12, which
 cannot create virtual cameras at runtime: build a newer one from source there.
 
-1. Install the system files (as root):
+1. Get the code:
+
+   ```sh
+   git clone https://github.com/asloth/webcam-blur.git
+   cd webcam-blur
+   ```
+
+2. Install the system files (as root):
 
    ```sh
    install -Dm644 data/60-webcam-blur.rules /etc/udev/rules.d/60-webcam-blur.rules
@@ -195,7 +235,7 @@ cannot create virtual cameras at runtime: build a newer one from source there.
    udevadm control --reload && modprobe v4l2loopback
    ```
 
-2. Run the app. It downloads the models to `~/.local/share/webcam-blur/models` on
+3. Run the app. It downloads the models to `~/.local/share/webcam-blur/models` on
    first start:
 
    ```sh
@@ -297,6 +337,8 @@ Everything is in the tray menu and the settings window. Settings are stored in
 | `strength` | `light`, `medium` or `strong` |
 | `use_gpu` | `true` / `false` (default) |
 | `quality` | `low` (default), `standard` or `high` |
+| `background` | path of the image shown behind you; `null` = blur |
+| `recent_backgrounds` | the last 5 images used, most recent first |
 | `language` | e.g. `"fr"`; `null` follows the system locale |
 | `cameras.<id>.blur` | blur on/off for this camera |
 | `cameras.<id>.mode` | resolution chosen in the settings (`{"width", "height", "fps"}`), `null` = automatic |
@@ -322,5 +364,7 @@ tests the Arch package.
 
 ## License
 
-GPL-3.0-or-later. The Robust Video Matting models are GPL-3.0. They are downloaded at
+GPL-3.0-or-later. Webcam Blur was written by [JiPaix](https://github.com/JiPaix/webcam-blur);
+this fork at [asloth/webcam-blur](https://github.com/asloth/webcam-blur) adds the
+background image. The Robust Video Matting models are GPL-3.0. They are downloaded at
 build time or on first run, not stored in this repository.

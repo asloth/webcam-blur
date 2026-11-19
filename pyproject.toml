@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "webcam-blur"
 dynamic = ["version"]
-description = "Background blur for any webcam, as virtual cameras usable in every app"
+description = "Background blur or background image for any webcam, as virtual cameras usable in every app"
 readme = "README.md"
 license = "GPL-3.0-or-later"
 requires-python = ">=3.11"
@@ -17,7 +17,8 @@ dependencies = ["numpy", "onnxruntime", "opencv-python", "PyQt6", "pyudev"]
 webcam-blur = "webcam_blur.app:main"
 
 [project.urls]
-Homepage = "https://github.com/JiPaix/webcam-blur"
+Homepage = "https://github.com/asloth/webcam-blur"
+Upstream = "https://github.com/JiPaix/webcam-blur"
 
 [tool.setuptools]
 packages = ["webcam_blur"]
