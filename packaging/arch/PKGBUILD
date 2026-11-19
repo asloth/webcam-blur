@@ -1,6 +1,7 @@
 # Maintainer: asloth <https://github.com/asloth>
 # Contributor: JiPaix <https://github.com/JiPaix> (original author)
-pkgname=webcam-blur
+pkgname=webcam-virtual-background
+_name=webcam-blur  # the repository, the Python package and the command keep this name
 pkgver=0.4.0
 pkgrel=1
 pkgdesc="Background blur or background image for any webcam, as virtual cameras usable in every app (tray toggle, GPU accelerated)"
@@ -12,10 +13,12 @@ makedepends=('python-build' 'python-installer' 'python-setuptools' 'python-wheel
 optdepends=('ncnn: GPU acceleration with Vulkan (AMD, NVIDIA, Intel)'
             'vulkan-driver: GPU acceleration (vulkan-radeon, vulkan-intel, nvidia-utils; usually installed)'
             'v4l2loopback-dkms: if your kernel does not ship the v4l2loopback module')
-install=webcam-blur.install
+install=webcam-virtual-background.install
+provides=('webcam-blur')
+conflicts=('webcam-blur')
 _models="https://github.com/PeterL1n/RobustVideoMatting/releases/download/v1.0.0"
 _ncnn="https://github.com/JiPaix/webcam-blur/releases/download/ncnn-models-1"  # the same models converted for ncnn (GPU)
-source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
+source=("$_name-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "$_models/rvm_mobilenetv3_fp32.onnx"
         "$_models/rvm_resnet50_fp32.onnx"
         "$_ncnn/rvm_mobilenetv3.ncnn.param"
@@ -31,17 +34,17 @@ sha256sums=('bbe149c914e2e1c2aea4907ef20f6c551c9b2e2f6a711f3383c410e49449d2d2'
             '0a0f93e0171a996f162999d4bc8360d597b638fc106ac3348e142d4cd989ec21')
 
 build() {
-  cd "$pkgname-$pkgver"
+  cd "$_name-$pkgver"
   python -m build --wheel --no-isolation
 }
 
 package() {
-  cd "$pkgname-$pkgver"
+  cd "$_name-$pkgver"
   python -m installer --destdir="$pkgdir" dist/*.whl
   install -Dm644 data/60-webcam-blur.rules "$pkgdir/usr/lib/udev/rules.d/60-webcam-blur.rules"
   install -Dm644 data/modprobe.conf "$pkgdir/usr/lib/modprobe.d/webcam-blur.conf"
   install -Dm644 data/modules-load.conf "$pkgdir/usr/lib/modules-load.d/webcam-blur.conf"
   install -Dm644 data/webcam-blur.desktop "$pkgdir/usr/share/applications/webcam-blur.desktop"
-  install -Dm644 -t "$pkgdir/usr/share/webcam-blur/models" \
+  install -Dm644 -t "$pkgdir/usr/share/$_name/models" \
     "$srcdir"/rvm_{mobilenetv3_fp32,resnet50_fp32}.onnx "$srcdir"/rvm_{mobilenetv3,resnet50}.ncnn.{param,bin}
 }

@@ -120,9 +120,7 @@ sets them again whenever the webcam is plugged in or the app starts.
 
 ## Getting started
 
-1. **Install it.** On Arch: download the package from the
-   [latest release](https://github.com/asloth/webcam-blur/releases/latest) and run
-   `sudo pacman -U` on it (see [Installation](#installation)). Other systems: see
+1. **Install it.** On Arch: `yay -S webcam-virtual-background`. Other systems: see
    [Installation](#installation) below.
 2. **Start "Webcam Blur"** from your applications menu. A webcam icon appears in the
    tray. Tick *Start at login* to have it every time.
@@ -188,24 +186,28 @@ on your face rather than behind you, help a lot. *High* quality helps a bit, and
 
 ### Arch Linux and derivatives
 
-Version 0.4.0, with backgrounds, is on the
-[GitHub release page](https://github.com/asloth/webcam-blur/releases/latest). Download
-`webcam-blur-0.4.0-1-any.pkg.tar.zst` and install it:
+Webcam Blur is in the AUR as
+[`webcam-virtual-background`](https://aur.archlinux.org/packages/webcam-virtual-background):
 
 ```sh
-sudo pacman -U ./webcam-blur-0.4.0-1-any.pkg.tar.zst
+yay -S webcam-virtual-background      # or paru, or any AUR helper
 ```
 
-pacman installs `python-opencv`, `python-pyqt6`, `python-pyudev` and `python-numpy` from
-the official repositories. For `python-onnxruntime`, pick `python-onnxruntime-cpu` when
-asked: the GPU doesn't go through onnxruntime.
+If pacman asks which `python-onnxruntime` to install, pick `python-onnxruntime-cpu`: the
+GPU doesn't go through onnxruntime.
 
-To build it yourself, download `PKGBUILD` and `webcam-blur.install` from the same
-release, then run `makepkg -si` in that folder.
+Without an AUR helper:
 
-The package replaces the AUR `webcam-blur` if you have it installed. The AUR package is
-the upstream version without backgrounds. Your settings are kept: both use
-`~/.config/webcam-blur/config.json`.
+```sh
+git clone https://aur.archlinux.org/webcam-virtual-background.git
+cd webcam-virtual-background
+makepkg -si
+```
+
+It replaces the upstream AUR package `webcam-blur` (0.3.0, without background images)
+if you have it. Your settings are kept: both use `~/.config/webcam-blur/config.json`. The
+[release page](https://github.com/asloth/webcam-blur/releases/latest) also has a ready-built
+package for `sudo pacman -U`.
 
 For GPU acceleration (optional), also install `ncnn`: `sudo pacman -S ncnn`.
 
