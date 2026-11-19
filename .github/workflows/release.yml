@@ -3,7 +3,8 @@ name: release
 # Push a tag like v0.4.0 (matching webcam_blur.__version__) to publish that version:
 # the Arch package is built and checked from the release tarball, and a GitHub release
 # is created with the package, its PKGBUILD and the notes in packaging/release-notes/,
-# and the PKGBUILD is pushed to the AUR package webcam-virtual-background (the AUR's
+# the package is added to the pacman repository (the "repo" release), and the
+# PKGBUILD is pushed to the AUR package webcam-virtual-background (the AUR's
 # webcam-blur is the upstream package). The AUR step needs the AUR_SSH_PRIVATE_KEY secret.
 
 on:
@@ -90,6 +91,21 @@ jobs:
             || gh release create "$GITHUB_REF_NAME" --title "Webcam Blur $VERSION" "$@"
           gh release upload "$GITHUB_REF_NAME" --clobber \
             packaging/arch/*.pkg.tar.zst packaging/arch/PKGBUILD packaging/arch/webcam-virtual-background.install
+
+      - name: Update the pacman repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The repository is the assets of the "repo" release: asloth.db, asloth.files and
+          # the packages. pacman downloads them from releases/download/repo.
+          mkdir repo && cd repo
+          gh release download repo --pattern 'asloth.*' || true
+          [ -f asloth.db ] && mv asloth.db asloth.db.tar.gz && mv asloth.files asloth.files.tar.gz
+          cp ../packaging/arch/*.pkg.tar.zst .
+          repo-add asloth.db.tar.gz ./*.pkg.tar.zst
+          rm -f asloth.db asloth.files
+          cp asloth.db.tar.gz asloth.db && cp asloth.files.tar.gz asloth.files
+          gh release upload repo --clobber asloth.db asloth.files ./*.pkg.tar.zst
 
       - name: Keep the repository's PKGBUILD in sync
         run: |
